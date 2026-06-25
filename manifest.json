@@ -6,11 +6,8 @@
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
-  "permissions": ["storage"],
-  "host_permissions": [
-    "https://www.google.com/s2/favicons/ *",
-    "https://t3.gstatic.com/faviconV2/ *"
-  ],
+  "permissions": [],
+  "host_permissions": ["https://www.google.com/*"],
   "action": {
     "default_icon": {
       "48": "icon/48x48.png",
