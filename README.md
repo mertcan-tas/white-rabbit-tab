@@ -1,67 +1,148 @@
 # White Rabbit: New Tab
 
+> Discover a stunning start to every tab.
 
 <p align="center">
-	<img src="src/assets/preview.png"/>
+  <img src="src/assets/preview.png" alt="White Rabbit: New Tab preview" />
 </p>
 
-
-Cosmos is a customizable new tab extension for Chrome. The plugin replaces your new tab page with a beautiful background, quick access shortcuts and a fully customizable interface.
+White Rabbit is a customizable new tab extension for Chrome. It replaces the
+default new tab page with a beautiful, full-screen background, organized
+quick-access shortcuts, and a clean, distraction-free interface that you can
+shape to fit the way you browse.
 
 ## Features
 
-- **Beautiful Backgrounds**: Multiple ready-made background options or use your own custom background image
-- **Quick Access Shortcuts**: Shortcuts for quick access to your favorite websites
-- **Customizable Rows**: Ability to organize your shortcuts into different rows
-- **Add Shortcuts**: Easily add your own shortcuts
-- **Fast Icon Loading**: Faster page loading with favicon caching
-- **Settings Page**: Ability to easily change plugin settings
-- **Icons**: Automatic favicon installation and custom icons
+- **Beautiful Backgrounds** – Each area carries its own full-screen background
+  image. Use one of the bundled backgrounds or point an area at any image URL
+  you like.
+- **Organized Areas** – Group your shortcuts into separate "areas" (for example
+  *Development*, *Design*, *Social*) and switch between them from the chips at
+  the bottom of the page.
+- **Quick-Access Shortcuts** – Add shortcuts to your favorite sites with a name
+  and a URL. Click a shortcut card to open the site.
+- **Automatic Favicons** – When you add a shortcut, its icon is fetched
+  automatically from the site's favicon.
+- **Fast Icon Loading via Caching** – Fetched favicons are stored as cached
+  data URLs in your browser, so they load instantly on subsequent visits and
+  keep working offline.
+- **Local Persistence** – Your areas, shortcuts, and preferences are saved in
+  the browser's local storage, so they persist across sessions on the same
+  machine.
+- **Light & Dark Themes** – Built on Vuetify's theming, with a configurable
+  dark mode.
+- **Internationalization** – Ships with English and Turkish locales via
+  `vue-i18n`.
+
+## Tech Stack
+
+- **[Vue 3](https://vuejs.org/)** – Application framework
+- **[Vuetify 3](https://vuetifyjs.com/)** – Material Design component library
+- **[Pinia](https://pinia.vuejs.org/)** – State management (areas, theme,
+  language, favicon cache)
+- **[Vue Router](https://router.vuejs.org/)** – Routing (home and settings
+  views)
+- **[vue-i18n](https://vue-i18n.intlify.dev/)** – Internationalization (English
+  and Turkish)
+- **[Vite](https://vitejs.dev/)** – Build tooling and dev server
+- **Chrome Extension (Manifest V3)** – Packaged as a `chrome_url_overrides`
+  new tab page
 
 ## Installation
 
-1. Download the extension from the Chrome Web Store
-2. Add the extension to Chrome
-3. Open a new tab and enjoy the beautiful interface of Cosmos!
+### From the Chrome Web Store
 
-## How to Use
+If a published listing is available, install White Rabbit from the Chrome Web
+Store and open a new tab to get started.
 
-### Background Change
+### From source (load unpacked)
 
-1. Click on the settings icon on the plugin page (bottom right corner)
-2. Select the background you want from the “Background” section
-3. Or add a URL for your own background image with the “Custom URL” option
+1. Clone this repository and install dependencies (this project uses
+   [pnpm](https://pnpm.io/)):
+   ```bash
+   pnpm install
+   ```
+2. Build the extension:
+   ```bash
+   pnpm build
+   ```
+   This produces a `dist/` folder containing the packaged extension.
+3. Open Chrome and navigate to `chrome://extensions`.
+4. Enable **Developer mode** (toggle in the top-right corner).
+5. Click **Load unpacked** and select the generated **`dist/`** folder.
+6. Open a new tab to see White Rabbit.
 
-### Adding a Shortcut
+## Usage
 
-1. Click on the settings icon on the plugin page
-2. From the “Add Shortcut” section:
-   - Enter the name of the shortcut
-   - Enter the URL of the shortcut (must start with https://)
-   - Choose which row the shortcut will be on
-   - Click on the “Add” button
+When you open a new tab, you see your current area's background and its
+shortcut cards. The chips at the bottom of the screen let you switch between
+areas and create new ones.
 
-### Delete Shortcut
+### Switching and adding areas
 
-1. Right-click on the shortcut you want to delete on the homepage
-2. Click “OK” in the confirmation dialog box
+- Click any area chip at the bottom of the page to switch to that area.
+- Click the **Add Area** chip to create a new area. Provide a label and,
+  optionally, a background image URL.
 
-### Other Settings
+### Adding a shortcut
 
-From the settings page you can change the following properties:
+1. Click the **+** card at the end of the current area's shortcuts.
+2. Enter the shortcut's title.
+3. Enter the shortcut's URL (e.g. `example.com` — it is normalized to
+   `https://` automatically). The favicon is fetched and cached for you.
+4. Save. The new shortcut is added to the current area.
 
-- Turn the background layer on/off
-- Determine whether links open in a new tab
-- Set whether icons are cached or not
+### Opening a shortcut
+
+Click a shortcut card to open the linked site.
 
 ## Development
 
-If you want to improve this plugin:
+Run the Vite dev server with hot-module reloading:
 
-1. Clone Repo
-2. Chrome > Extensions > Developer mode on > Install unpacked item
-3. Select the directory you are cloning
+```bash
+pnpm install
+pnpm dev
+```
+
+The dev server runs on `http://localhost:3000`. Note that some
+extension-specific behavior (the new tab override, packaged icons, and the
+copied `manifest.json`) is only present in a production build; use
+`pnpm build` and **Load unpacked** to test the extension inside Chrome.
+
+Available scripts:
+
+| Script                   | Description                                   |
+| ------------------------ | --------------------------------------------- |
+| `pnpm dev`               | Start the Vite development server             |
+| `pnpm build`             | Build the extension into `dist/`              |
+| `pnpm preview`           | Preview the production build locally          |
+| `pnpm remove-preload`    | Strip `rel="preload"` attributes from the build's `index.html` |
+
+## Project Structure
+
+```
+white-rabbit-tab/
+├── manifest.json          # Chrome extension manifest (Manifest V3)
+├── index.html             # App entry HTML
+├── vite.config.mjs        # Vite configuration (Vue, Vuetify, fonts, static copy)
+├── remove-preload.js      # Post-build helper to strip preload links
+└── src/
+    ├── main.js            # App bootstrap
+    ├── App.vue            # Root component (router outlet)
+    ├── assets/            # Styles, fonts, icons, background, preview image
+    ├── layouts/           # BaseLayout (Vuetify app shell + theme/i18n wiring)
+    ├── views/
+    │   ├── home/          # HomeView – areas, backgrounds, shortcuts
+    │   └── settings/      # SettingsView
+    └── plugins/
+        ├── index.js       # Registers router, Pinia, Vuetify, i18n
+        ├── router/        # Vue Router setup
+        ├── stores/        # Pinia stores (area-store, theme-store)
+        ├── vuetify/       # Vuetify theme and defaults
+        └── i18n/          # vue-i18n setup and locale files (en, tr)
+```
 
 ## License
 
-This plugin is available under an open source license.
+Released under the [MIT License](LICENSE).
