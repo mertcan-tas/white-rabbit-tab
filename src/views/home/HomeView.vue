@@ -1,5 +1,5 @@
 <template>
-  <BaseLayput>
+  <BaseLayout>
     <v-container fluid class="pa-0 ma-0" style="height: 100vh">
       <v-row no-gutters class="fill-height">
         <v-col cols="12" class="fill-height position-relative">
@@ -203,7 +203,7 @@
         </v-col>
       </v-row>
     </v-container>
-  </BaseLayput>
+  </BaseLayout>
 </template>
 
 <script>
