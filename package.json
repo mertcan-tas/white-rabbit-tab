@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node remove-preload.js",
     "remove-preload": "node remove-preload.js",
     "preview": "vite preview"
   },

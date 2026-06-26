@@ -14,8 +14,13 @@ if (!fs.existsSync(filePath)) {
 
 let html = fs.readFileSync(filePath, 'utf-8');
 
-html = html.replace(/\s+rel\s*=\s*["']preload["']/gi, '');
+// Remove entire `<link rel="preload" ...>` tags (and their leading
+// indentation / trailing newline) so no dead <link> elements are left behind.
+html = html.replace(/[ \t]*<link\b[^>]*\brel\s*=\s*["']preload["'][^>]*>[ \t]*\n?/gi, '');
+
+// Collapse any blank line left where the preload block used to be.
+html = html.replace(/(<head>\s*\n)\s*\n+/i, '$1');
 
 fs.writeFileSync(filePath, html, 'utf-8');
 
-console.log('✅ All `rel="preload"` attributes have been removed.');
+console.log('✅ All `rel="preload"` <link> tags have been removed.');
