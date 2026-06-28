@@ -1,64 +1,30 @@
 <template>
-  <v-app :theme="isDark ? 'dark' : 'light'">
-    <v-main>
-      <slot></slot>
-    </v-main>
-  </v-app>
+  <div class="h-full w-full">
+    <slot />
+  </div>
 </template>
 
-<script>
-import { useThemeStore } from "@/plugins/stores/theme-store.js";
+<script setup>
+import { watch, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import { storeToRefs } from "pinia";
+import { useThemeStore } from "@/plugins/stores/theme-store.js";
 
-export default {
-  name: "BaseLayout",
-  data() {
-    return {
-      themeStore: useThemeStore(),
-      i18n: useI18n(),
-    };
+const themeStore = useThemeStore();
+const { currentLanguage } = storeToRefs(themeStore);
+const { locale } = useI18n();
+
+watch(
+  currentLanguage,
+  (lang) => {
+    locale.value = lang;
+    document.documentElement.setAttribute("lang", lang);
   },
-  computed: {
-    isDark() {
-      return this.themeStore.isDark;
-    },
-    currentLanguage() {
-      return this.themeStore.currentLanguage;
-    },
-  },
-  watch: {
-    currentLanguage: {
-      handler(newLang) {
-        if (
-          this.i18n.locale &&
-          typeof this.i18n.locale === "object" &&
-          "value" in this.i18n.locale
-        ) {
-          this.i18n.locale.value = newLang;
-        } else {
-          this.i18n.locale = newLang;
-        }
-        document.documentElement.setAttribute("lang", newLang);
-      },
-      immediate: true,
-    },
-  },
-  mounted() {
-    this.themeStore.initSettings();
-    
-    if (
-      this.i18n.locale &&
-      typeof this.i18n.locale === "object" &&
-      "value" in this.i18n.locale
-    ) {
-      this.i18n.locale.value = this.themeStore.currentLanguage;
-    } else {
-      this.i18n.locale = this.themeStore.currentLanguage;
-    }
-    document.documentElement.setAttribute(
-      "lang",
-      this.themeStore.currentLanguage
-    );
-  },
-};
+  { immediate: true }
+);
+
+onMounted(() => {
+  themeStore.initSettings();
+  locale.value = themeStore.currentLanguage;
+});
 </script>

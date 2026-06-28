@@ -1,5 +1,33 @@
 import { defineStore } from "pinia";
 
+// An item inside an area is either an app ({name,url,icon}) or a folder.
+export const isFolder = (item) => !!item && item.type === "folder";
+
+function arrayMove(arr, from, to) {
+  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return;
+  const [el] = arr.splice(from, 1);
+  arr.splice(to, 0, el);
+}
+
+function normalizeUrl(input) {
+  if (!input) return null;
+  let s = input.trim();
+  if (!/^https?:\/\//i.test(s)) s = "https://" + s.replace(/^\/+/, "");
+  try {
+    return new URL(s);
+  } catch {
+    return null;
+  }
+}
+
+function safeHost(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
 export const useAreaStore = defineStore("areaStore", {
   state: () => ({
     areas: [
@@ -276,12 +304,24 @@ export const useAreaStore = defineStore("areaStore", {
           }
         }
 
-        this.areas.forEach((area) => {
-          area.apps.forEach((app) => {
+        const resolveIcon = (app) => {
+          try {
             const domain = new URL(app.url).hostname;
             app.icon =
               this.faviconCache[domain] ||
               `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+          } catch (e) {
+            /* ignore malformed urls */
+          }
+        };
+
+        this.areas.forEach((area) => {
+          (area.apps || []).forEach((item) => {
+            if (isFolder(item)) {
+              (item.apps || []).forEach(resolveIcon);
+            } else {
+              resolveIcon(item);
+            }
           });
         });
       } catch (error) {
@@ -324,6 +364,33 @@ export const useAreaStore = defineStore("areaStore", {
       }
     },
 
+    // Serializable snapshot of all areas + shortcuts, for backup/export.
+    exportData() {
+      return {
+        app: "hexpane",
+        version: 1,
+        areas: JSON.parse(JSON.stringify(this.areas)),
+      };
+    },
+
+    // Replace all areas from an imported backup. Returns true on success.
+    importData(data) {
+      const areas = data && Array.isArray(data.areas) ? data.areas : null;
+      if (!areas) return false;
+      const valid = areas.every(
+        (a) => a && typeof a.label === "string" && Array.isArray(a.apps)
+      );
+      if (!valid) return false;
+      // normalize: keep only the fields we use, drop anything unexpected
+      this.areas = areas.map((a) => ({
+        label: a.label,
+        background: typeof a.background === "string" ? a.background : "",
+        apps: a.apps,
+      }));
+      this.saveToLocalStorage();
+      return true;
+    },
+
     addArea(newArea) {
       this.areas.push(newArea);
       this.saveToLocalStorage();
@@ -357,32 +424,13 @@ export const useAreaStore = defineStore("areaStore", {
         this.areas[areaIndex].apps = [];
       }
 
-      let iconData = this.faviconCache[domain];
-
-      if (!iconData) {
-        try {
-          const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-          const response = await fetch(faviconUrl);
-          if (!response.ok) throw new Error("Favicon indirilemedi");
-
-          const blob = await response.blob();
-          const reader = new FileReader();
-
-          await new Promise((resolve, reject) => {
-            reader.onloadend = () => {
-              this.faviconCache[domain] = reader.result;
-              iconData = reader.result;
-              resolve();
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.error("Favicon dönüştürme hatası:", error);
-          iconData =
-            "data:image/png;base64,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";
-        }
-      }
+      // Use the favicon URL directly, exactly like the built-in shortcuts, so the
+      // <img> loads it (cross-origin images need no CORS). The previous
+      // fetch()+data-URL path failed under CORS and fell back to a generic globe
+      // icon for every added shortcut.
+      const iconData =
+        this.faviconCache[domain] ||
+        `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 
       this.areas[areaIndex].apps.push({
         name: title,
@@ -390,6 +438,119 @@ export const useAreaStore = defineStore("areaStore", {
         icon: iconData,
       });
 
+      this.saveToLocalStorage();
+    },
+
+    // --- Area editing ---
+    updateArea(index, label) {
+      if (!this.areas[index]) return;
+      this.areas[index].label = label;
+      this.saveToLocalStorage();
+    },
+
+    deleteArea(index) {
+      if (this.areas.length <= 1) return; // keep at least one area
+      this.areas.splice(index, 1);
+      this.saveToLocalStorage();
+    },
+
+    // --- Folders ---
+    // Drop the item at `fromIdx` onto the item at `toIdx`:
+    // app→app creates a folder, app→folder adds to it.
+    dropOnItem(areaIndex, fromIdx, toIdx) {
+      const items = this.areas[areaIndex]?.apps;
+      if (!items || fromIdx === toIdx) return;
+      const dragged = items[fromIdx];
+      const target = items[toIdx];
+      if (!dragged || !target || isFolder(dragged)) return;
+
+      if (isFolder(target)) {
+        target.apps.push(dragged);
+      } else {
+        items[toIdx] = {
+          type: "folder",
+          name: "Klasör",
+          apps: [target, dragged],
+        };
+      }
+      items.splice(fromIdx, 1);
+      this.saveToLocalStorage();
+    },
+
+    removeFromFolder(areaIndex, folderIdx, innerIdx) {
+      const items = this.areas[areaIndex]?.apps;
+      const folder = items?.[folderIdx];
+      if (!isFolder(folder)) return;
+      const [app] = folder.apps.splice(innerIdx, 1);
+      if (app) items.push(app);
+      // Dissolve a folder that holds one or zero apps
+      if (folder.apps.length <= 1) {
+        if (folder.apps.length === 1) items.push(folder.apps[0]);
+        items.splice(folderIdx, 1);
+      }
+      this.saveToLocalStorage();
+    },
+
+    renameFolder(areaIndex, folderIdx, name) {
+      const folder = this.areas[areaIndex]?.apps?.[folderIdx];
+      if (!isFolder(folder)) return;
+      folder.name = name;
+      this.saveToLocalStorage();
+    },
+
+    reorderItem(areaIndex, fromIdx, toIdx) {
+      const items = this.areas[areaIndex]?.apps;
+      if (!items) return;
+      arrayMove(items, fromIdx, toIdx);
+      this.saveToLocalStorage();
+    },
+
+    removeItem(areaIndex, idx) {
+      const items = this.areas[areaIndex]?.apps;
+      if (!items || idx < 0 || idx >= items.length) return;
+      items.splice(idx, 1);
+      this.saveToLocalStorage();
+    },
+
+    updateItem(areaIndex, idx, { name, url } = {}) {
+      const item = this.areas[areaIndex]?.apps?.[idx];
+      if (!item || isFolder(item)) return;
+      if (name != null) item.name = name;
+      if (url != null) {
+        const valid = normalizeUrl(url);
+        if (valid) {
+          const newHost = valid.hostname;
+          const changed = newHost !== safeHost(item.url);
+          item.url = valid.toString();
+          if (changed) {
+            item.icon =
+              this.faviconCache[newHost] ||
+              `https://www.google.com/s2/favicons?domain=${newHost}&sz=128`;
+          }
+        }
+      }
+      this.saveToLocalStorage();
+    },
+
+    moveItemToArea(fromArea, fromIdx, toArea) {
+      if (fromArea === toArea) return;
+      const src = this.areas[fromArea]?.apps;
+      const dst = this.areas[toArea]?.apps;
+      if (!src || !dst || fromIdx < 0 || fromIdx >= src.length) return;
+      const [item] = src.splice(fromIdx, 1);
+      dst.push(item);
+      this.saveToLocalStorage();
+    },
+
+    reorderArea(fromIdx, toIdx) {
+      arrayMove(this.areas, fromIdx, toIdx);
+      this.saveToLocalStorage();
+    },
+
+    reorderInFolder(areaIndex, folderIdx, fromIdx, toIdx) {
+      const folder = this.areas[areaIndex]?.apps?.[folderIdx];
+      if (!isFolder(folder)) return;
+      arrayMove(folder.apps, fromIdx, toIdx);
       this.saveToLocalStorage();
     },
   },

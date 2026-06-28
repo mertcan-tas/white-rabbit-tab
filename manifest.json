@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "White Rabbit: New Tab",
+  "name": "Hexpane: New Tab",
   "version": "2.0.1",
-  "description": "Discover a Stunning Start to Every Tab",
+  "description": "A beautiful, customizable new tab — organize your shortcuts into spaces, with folders and gradient backgrounds.",
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
-  "permissions": [],
-  "host_permissions": ["https://www.google.com/*"],
+  "permissions": ["bookmarks"],
   "action": {
     "default_icon": {
       "48": "icon/48x48.png",

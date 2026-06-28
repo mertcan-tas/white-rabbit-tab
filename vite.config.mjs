@@ -1,6 +1,6 @@
 import Components from "unplugin-vue-components/vite";
 import Vue from "@vitejs/plugin-vue";
-import Vuetify, { transformAssetUrls } from "vite-plugin-vuetify";
+import Tailwind from "@tailwindcss/vite";
 import Fonts from "unplugin-fonts/vite";
 import vueDevTools from "vite-plugin-vue-devtools";
 
@@ -10,11 +10,9 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
   plugins: [
-    Vue({
-      template: { transformAssetUrls },
-    }),
+    Vue(),
     vueDevTools(),
-    Vuetify(),
+    Tailwind(),
     Components({
       dirs: ["src/assets", "src/components", "src/layouts", "src/views"],
     }),
@@ -32,6 +30,7 @@ export default defineConfig({
       ],
     }),
     Fonts({
+      custom: { preload: false },
       fontsource: {
         families: [
           {
@@ -44,9 +43,6 @@ export default defineConfig({
       },
     }),
   ],
-  optimizeDeps: {
-    exclude: ["vuetify"],
-  },
   define: { "process.env": {} },
   resolve: {
     alias: {
@@ -56,6 +52,10 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+  },
+  test: {
+    environment: "happy-dom",
+    include: ["src/**/*.test.js"],
   },
   base: "./",
   build: {
